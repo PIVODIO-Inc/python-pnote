@@ -58,8 +58,16 @@ class PNote:
         """
         self.events.sort(key=lambda e: (e.start, 0 if isinstance(e, NoteEvent) else 1, -_midi_pitch_value(e) if isinstance(e, NoteEvent) else 0))
 
-    def to_lines(self) -> List[str]:
-        return [e.to_pnote() for e in self.events]
+    def to_string(self) -> str:
+        """Return the entire notation as a single string.
+
+        Ensures events are sorted per the specification before rendering.
+        """
+        self.sort_events()
+        return "\n".join(e.to_pnote() for e in self.events)
+
+    def __str__(self) -> str:  # pragma: no cover - convenience
+        return self.to_string()
 
     @classmethod
     def from_midi(cls, source: Union[str, os.PathLike, bytes, bytearray, BinaryIO]) -> "PNote":
