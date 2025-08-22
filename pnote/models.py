@@ -44,26 +44,25 @@ class PNote:
     """Container for a sequence of events in PNote format."""
 
     def __init__(self, events: List[Event] | None = None):
-        self.events: List[Event] = list(events) if events else []
+        self.events: List[Event] = []
+        if events:
+            for event in events:
+                self.add_event(event)
 
     def add_event(self, event: Event) -> None:
+        # Insert in the correct position to maintain sorted invariant per spec
+        new_key = _event_sort_key(event)
+        for idx, existing in enumerate(self.events):
+            if new_key < _event_sort_key(existing):
+                self.events.insert(idx, event)
+                return
         self.events.append(event)
-
-    def sort_events(self) -> None:
-        """Sort events according to specification rules.
-
-        - Events are sorted by ascending start
-        - If same start, NoteEvent before ControlEvent
-        - NoteEvents at same start sorted by pitch, high -> low
-        """
-        self.events.sort(key=lambda e: (e.start, 0 if isinstance(e, NoteEvent) else 1, -_midi_pitch_value(e) if isinstance(e, NoteEvent) else 0))
 
     def to_string(self) -> str:
         """Return the entire notation as a single string.
 
         Ensures events are sorted per the specification before rendering.
         """
-        self.sort_events()
         return "\n".join(e.to_pnote() for e in self.events)
 
     def __str__(self) -> str:  # pragma: no cover - convenience
@@ -126,8 +125,6 @@ class PNote:
                         dur = max(1, end - start)
                         pitch = _midi_note_to_pitch(msg.note)
                         pnote.add_event(NoteEvent(pitch, start, dur, vel))
-
-        pnote.sort_events()
         return pnote
 
 
@@ -157,6 +154,17 @@ def _midi_pitch_value(event: NoteEvent) -> int:
     octave = int(pitch[idx + 1 :])
     base = NOTE_NAMES.index(name)
     return (octave + 1) * 12 + base
+
+
+def _event_sort_key(e: Event):
+    # Sort by ascending start; NoteEvent before ControlEvent at same start;
+    # for notes at same start, higher pitch first.
+    is_note = isinstance(e, NoteEvent)
+    return (
+        e.start,
+        0 if is_note else 1,
+        -_midi_pitch_value(e) if is_note else 0,
+    )
 
 
 __all__ = ["Event", "NoteEvent", "ControlEvent", "PNote"]
