@@ -1,0 +1,75 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.pyd
+
+# Distribution / packaging
+.Python
+build/
+dist/
+.eggs/
+*.egg-info/
+*.egg
+pnote.egg-info/
+pip-wheel-metadata/
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache/
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# Type checkers / linters
+.mypy_cache/
+.pyre/
+.pytype/
+.ruff_cache/
+
+# Environments
+.venv/
+venv/
+env/
+ENV/
+.venv*
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDEs/editors
+.vscode/
+.idea/
+*.code-workspace
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# uv (in-project virtualenv; lockfile is committed)
+.uv/
+# keep uv.lock committed
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Logs
+*.log
+
+# Local env files
+.env
+.env.*
