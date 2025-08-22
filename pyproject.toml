@@ -11,7 +11,7 @@ dependencies = [
 ]
 
 [project.urls]
-Repository = "https://github.com/<your-org-or-user>/python-pnote"
+Repository = "https://github.com/PIVODIO-Inc/python-pnote"
 
 [build-system]
 requires = ["setuptools>=61.0", "wheel"]
