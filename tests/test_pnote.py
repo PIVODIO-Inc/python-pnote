@@ -1,6 +1,6 @@
 import pytest
 import base64
-from pnote import PNote, NoteEvent, ControlEvent
+from pnote import PNote, NoteEvent, ControlEvent, Event
 
 
 def test_pnote_init():
@@ -18,7 +18,7 @@ def test_pnote_init():
     pnote = PNote(events)
     assert len(pnote.events) == 3
 
-    # Events are sorted, first by start time, then by pitch
+    # Events are sorted, first by start time, then controls before notes
     events_not_sorted = [
         NoteEvent("D4", 102, 103, 104),
         NoteEvent("C4", 100, 101, 102),
@@ -43,28 +43,40 @@ def test_pnote_add_event():
     assert isinstance(pnote.events[0], NoteEvent) and pnote.events[0].pitch == "D4"
     assert isinstance(pnote.events[1], NoteEvent) and pnote.events[1].pitch == "C4"
 
-    # adding a control event with the same start time should insert it at the correct position
+    # adding a control event with the same start time should appear before notes at that start
     pnote.add_event(ControlEvent("Sustain", "on", 100))
     assert len(pnote.events) == 3
-    assert isinstance(pnote.events[0], NoteEvent) and pnote.events[0].pitch == "D4"
-    assert isinstance(pnote.events[1], NoteEvent) and pnote.events[1].pitch == "C4"
-    assert isinstance(pnote.events[2], ControlEvent) and pnote.events[2].name == "Sustain"
+    assert isinstance(pnote.events[0], ControlEvent) and pnote.events[0].name == "Sustain"
+    assert isinstance(pnote.events[1], NoteEvent) and pnote.events[1].pitch == "D4"
+    assert isinstance(pnote.events[2], NoteEvent) and pnote.events[2].pitch == "C4"
 
     # adding a note event with an earlier start time should insert it at the correct position
     pnote.add_event(NoteEvent("B3", 99, 100, 101))
     assert len(pnote.events) == 4
     assert isinstance(pnote.events[0], NoteEvent) and pnote.events[0].pitch == "B3"
-    assert isinstance(pnote.events[1], NoteEvent) and pnote.events[1].pitch == "D4"
-    assert isinstance(pnote.events[2], NoteEvent) and pnote.events[2].pitch == "C4"
+    assert isinstance(pnote.events[1], ControlEvent) and pnote.events[1].name == "Sustain"
+    assert isinstance(pnote.events[2], NoteEvent) and pnote.events[2].pitch == "D4"
+    assert isinstance(pnote.events[3], NoteEvent) and pnote.events[3].pitch == "C4"
+
+    # adding an unknown Event subclass at same start should sort after controls and notes
+    class CustomEvent(Event):
+        def __init__(self, start: int):
+            super().__init__(start)
+        def to_pnote(self) -> str:
+            return f"Custom:start={self.start}"
+
+    pnote.add_event(CustomEvent(100))
+    assert len(pnote.events) == 5
+    assert isinstance(pnote.events[4], CustomEvent)
 
 def test_pnote_to_string():
     """Test that the PNote class converts to string correctly."""
     pnote = PNote([
         NoteEvent("C4", 100, 101, 102),
         NoteEvent("D4", 102, 103, 104),
-        ControlEvent("Sustain", "on", 104),
+        ControlEvent("Sustain", "on", 100),
     ])
-    assert pnote.to_string() == "C4:start=100:dur=101:vel=102\nD4:start=102:dur=103:vel=104\nSustain:on:start=104"
+    assert pnote.to_string() == "Sustain:on:start=100\nC4:start=100:dur=101:vel=102\nD4:start=102:dur=103:vel=104"
 
 def test_pnote_from_midi():
     """Test that the PNote class converts from MIDI correctly."""
@@ -81,11 +93,11 @@ def test_pnote_from_midi():
     midi_bytes = base64.b64decode(b64_midi)
     pnote = PNote.from_midi(midi_bytes)
 
-    # Expected order per spec: events sorted by start asc; at same start, notes before controls.
-    # So with tempo and C4 at start=0, C4 appears before Tempo; D4 at start=16 is last.
+    # Expected order per spec: events sorted by start asc; at same start, controls before notes.
+    # So with tempo and C4 at start=0, Tempo appears before C4; D4 at start=16 is last.
     expected = (
-        "C4:start=0:dur=16:vel=80\n"
         "Tempo:120.0:start=0\n"
+        "C4:start=0:dur=16:vel=80\n"
         "D4:start=16:dur=16:vel=90"
     )
     
@@ -101,8 +113,8 @@ def test_pnote_from_midi_file_like():
     pnote = PNote.from_midi(f)
 
     expected = (
-        "C4:start=0:dur=16:vel=80\n"
         "Tempo:120.0:start=0\n"
+        "C4:start=0:dur=16:vel=80\n"
         "D4:start=16:dur=16:vel=90"
     )
     assert pnote.to_string() == expected
@@ -118,8 +130,8 @@ def test_pnote_from_midi_pathlike(tmp_path):
     pnote = PNote.from_midi(midi_path)
 
     expected = (
-        "C4:start=0:dur=16:vel=80\n"
         "Tempo:120.0:start=0\n"
+        "C4:start=0:dur=16:vel=80\n"
         "D4:start=16:dur=16:vel=90"
     )
     assert pnote.to_string() == expected

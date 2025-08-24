@@ -158,14 +158,17 @@ def _midi_pitch_value(event: NoteEvent) -> int:
 
 
 def _event_sort_key(e: Event):
-    # Sort by ascending start; NoteEvent before ControlEvent at same start;
+    # Sort by ascending start; ControlEvent before NoteEvent at same start;
+    # for controls at same start, alphabetical by (name, value);
     # for notes at same start, higher pitch first.
-    is_note = isinstance(e, NoteEvent)
-    return (
-        e.start,
-        0 if is_note else 1,
-        -_midi_pitch_value(e) if is_note else 0,
-    )
+    if isinstance(e, ControlEvent):
+        name = getattr(e, "name", "")
+        value = getattr(e, "value", "")
+        return (e.start, 0, name, value)
+    elif isinstance(e, NoteEvent):
+        return (e.start, 1, -_midi_pitch_value(e))
+    else:
+        return (e.start, 2)
 
 
 __all__ = ["Event", "NoteEvent", "ControlEvent", "PNote"]
