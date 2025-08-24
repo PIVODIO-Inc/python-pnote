@@ -79,11 +79,6 @@ class PNote:
         delegate to the private `_from_midi_mid` loader.
         """
 
-        # Explicitly disallow passing mido.MidiFile instances to keep the
-        # public API focused on file-like or path-based inputs.
-        if isinstance(source, mido.MidiFile):
-            raise TypeError("PNote.from_midi does not accept mido.MidiFile instances; pass a path, bytes, or file-like object instead")
-
         # bytes -> BytesIO
         if isinstance(source, (bytes, bytearray)):
             file_obj = io.BytesIO(source)
@@ -132,7 +127,13 @@ def _ticks_to_sixtyfourth(ticks: int, ticks_per_beat: int, tempo_us_per_beat: in
     # Convert MIDI ticks to sixty-fourth-note counts.
     # ticks_per_beat is ticks per quarter note; 1 quarter note = 16 sixty-fourths
     # ticks per sixty-fourth = ticks_per_beat / 16
-    return int(ticks / (ticks_per_beat / 16))
+    # Use ceiling division to quantize early note-offs (common in DAWs/MuseScore)
+    # up to the nearest sixty-fourth so durations align with musical grid.
+    sixtyfourth_ticks = ticks_per_beat // 16
+    # Guard against pathological inputs
+    if sixtyfourth_ticks <= 0:
+        return 0
+    return (ticks + (sixtyfourth_ticks - 1)) // sixtyfourth_ticks
 
 
 def _midi_note_to_pitch(midi_note: int) -> str:

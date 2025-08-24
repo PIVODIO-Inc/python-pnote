@@ -10,6 +10,12 @@ dependencies = [
     "mido==1.3.3",
 ]
 
+[project.optional-dependencies]
+dev = [
+    "pytest==8.4.1",
+    "pytest-cov==6.2.1",
+]
+
 [project.urls]
 Repository = "https://github.com/PIVODIO-Inc/python-pnote"
 
