@@ -69,7 +69,9 @@ class PNote:
         return self.to_string()
 
     @classmethod
-    def from_midi(cls, source: Union[str, os.PathLike, bytes, bytearray, BinaryIO]) -> "PNote":
+    def from_midi(
+        cls, source: Union[str, os.PathLike, bytes, bytearray, BinaryIO]
+    ) -> "PNote":
         """Construct a PNote from a MIDI source.
 
         Accepted `source` types: filesystem path (`str`/`os.PathLike`), raw
@@ -91,7 +93,10 @@ class PNote:
         elif isinstance(source, (str, os.PathLike)):
             mid = mido.MidiFile(filename=str(source))
         else:
-            raise TypeError("Unsupported source type for from_midi; expected path, bytes, or file-like object")
+            raise TypeError(
+                "Unsupported source type for from_midi; expected path, bytes, "
+                "or file-like object"
+            )
 
         return cls._from_midi_mid(mid)
 
@@ -102,28 +107,44 @@ class PNote:
         current_tempo = 500000  # default microseconds per beat
         for track in mid.tracks:
             absolute_ticks = 0
-            note_on_times = {}
+            note_on_times: dict[int, list[tuple[int, int]]] = {}
             for msg in track:
                 absolute_ticks += msg.time
-                if msg.type == 'set_tempo':
+                if msg.type == "set_tempo":
                     current_tempo = msg.tempo
-                    start = _ticks_to_sixtyfourth(absolute_ticks, mid.ticks_per_beat, current_tempo)
-                    pnote.add_event(ControlEvent('Tempo', str(mido.tempo2bpm(current_tempo)), start))
-                elif msg.type == 'note_on' and msg.velocity > 0:
-                    start = _ticks_to_sixtyfourth(absolute_ticks, mid.ticks_per_beat, current_tempo)
-                    note_on_times.setdefault(msg.note, []).append((absolute_ticks, msg.velocity))
-                elif (msg.type == 'note_off') or (msg.type == 'note_on' and msg.velocity == 0):
+                    start = _ticks_to_sixtyfourth(
+                        absolute_ticks, mid.ticks_per_beat, current_tempo
+                    )
+                    pnote.add_event(
+                        ControlEvent("Tempo", str(mido.tempo2bpm(current_tempo)), start)
+                    )
+                elif msg.type == "note_on" and msg.velocity > 0:
+                    start = _ticks_to_sixtyfourth(
+                        absolute_ticks, mid.ticks_per_beat, current_tempo
+                    )
+                    note_on_times.setdefault(msg.note, []).append(
+                        (absolute_ticks, msg.velocity)
+                    )
+                elif (msg.type == "note_off") or (
+                    msg.type == "note_on" and msg.velocity == 0
+                ):
                     if msg.note in note_on_times and note_on_times[msg.note]:
                         on_tick, vel = note_on_times[msg.note].pop(0)
-                        start = _ticks_to_sixtyfourth(on_tick, mid.ticks_per_beat, current_tempo)
-                        end = _ticks_to_sixtyfourth(absolute_ticks, mid.ticks_per_beat, current_tempo)
+                        start = _ticks_to_sixtyfourth(
+                            on_tick, mid.ticks_per_beat, current_tempo
+                        )
+                        end = _ticks_to_sixtyfourth(
+                            absolute_ticks, mid.ticks_per_beat, current_tempo
+                        )
                         dur = max(1, end - start)
                         pitch = _midi_note_to_pitch(msg.note)
                         pnote.add_event(NoteEvent(pitch, start, dur, vel))
         return pnote
 
 
-def _ticks_to_sixtyfourth(ticks: int, ticks_per_beat: int, tempo_us_per_beat: int) -> int:
+def _ticks_to_sixtyfourth(
+    ticks: int, ticks_per_beat: int, tempo_us_per_beat: int
+) -> int:
     # Convert MIDI ticks to sixty-fourth-note counts.
     # ticks_per_beat is ticks per quarter note; 1 quarter note = 16 sixty-fourths
     # ticks per sixty-fourth = ticks_per_beat / 16
@@ -157,7 +178,7 @@ def _midi_pitch_value(event: NoteEvent) -> int:
     return (octave + 1) * 12 + base
 
 
-def _event_sort_key(e: Event):
+def _event_sort_key(e: Event):  # type: ignore[no-untyped-def]
     # Sort by ascending start; ControlEvent before NoteEvent at same start;
     # for controls at same start, alphabetical by (name, value);
     # for notes at same start, higher pitch first.
@@ -172,5 +193,3 @@ def _event_sort_key(e: Event):
 
 
 __all__ = ["Event", "NoteEvent", "ControlEvent", "PNote"]
-
-

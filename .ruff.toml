@@ -1,40 +1,3 @@
-[project]
-name = "pnote"
-version = "0.1.0"
-description = "Internal library for PNote LLM MIDI Notation System"
-authors = [ { name = "PIVODIO", email = "y2@pivodio.com" } ]
-requires-python = ">=3.12"
-readme = "README.md"
-
-dependencies = [
-    "mido==1.3.3",
-]
-
-[project.scripts]
-pnote = "pnote.cli:main"
-
-[project.urls]
-Repository = "https://github.com/PIVODIO-Inc/python-pnote"
-
-[build-system]
-requires = ["setuptools>=61.0", "wheel"]
-build-backend = "setuptools.build_meta"
-
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["pnote*"]
-
-[tool.setuptools.package-data]
-"pnote" = ["py.typed"]
-
-[dependency-groups]
-dev = [
-    "mypy>=1.17.1",
-    "pytest>=8.4.1",
-    "pytest-cov>=6.2.1",
-    "ruff>=0.12.11",
-]
-
 [tool.ruff]
 # Exclude a variety of commonly ignored directories.
 exclude = [
@@ -92,6 +55,3 @@ skip-magic-trailing-comma = false
 
 # Like Black, automatically detect the appropriate line ending.
 line-ending = "auto"
-
-[tool.setuptools]
-include-package-data = true
