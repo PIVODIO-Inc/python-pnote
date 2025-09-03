@@ -13,12 +13,6 @@ dependencies = [
 [project.scripts]
 pnote = "pnote.cli:main"
 
-[project.optional-dependencies]
-dev = [
-    "pytest==8.4.1",
-    "pytest-cov==6.2.1",
-]
-
 [project.urls]
 Repository = "https://github.com/PIVODIO-Inc/python-pnote"
 
@@ -32,6 +26,12 @@ include = ["pnote*"]
 
 [tool.setuptools.package-data]
 "pnote" = ["py.typed"]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.1",
+    "pytest-cov>=6.2.1",
+]
 
 [tool.setuptools]
 include-package-data = true
