@@ -4,7 +4,6 @@ import base64
 import io
 import logging
 import os
-import sys
 import tempfile
 from unittest.mock import patch
 
@@ -27,8 +26,8 @@ class TestValidateInputPath:
     def test_valid_midi_file(self):
         """Test validation of a valid MIDI file."""
         # Create a temporary .mid file
-        with tempfile.NamedTemporaryFile(suffix='.mid', delete=False) as tmp:
-            tmp.write(b'dummy midi content')
+        with tempfile.NamedTemporaryFile(suffix=".mid", delete=False) as tmp:
+            tmp.write(b"dummy midi content")
             tmp_path = tmp.name
 
         try:
@@ -39,8 +38,8 @@ class TestValidateInputPath:
 
     def test_valid_midi_file_uppercase_ext(self):
         """Test validation with uppercase .MIDI extension."""
-        with tempfile.NamedTemporaryFile(suffix='.MIDI', delete=False) as tmp:
-            tmp.write(b'dummy midi content')
+        with tempfile.NamedTemporaryFile(suffix=".MIDI", delete=False) as tmp:
+            tmp.write(b"dummy midi content")
             tmp_path = tmp.name
 
         try:
@@ -61,8 +60,8 @@ class TestValidateInputPath:
 
     def test_invalid_extension(self):
         """Test validation with invalid file extension."""
-        with tempfile.NamedTemporaryFile(suffix='.txt', delete=False) as tmp:
-            tmp.write(b'text content')
+        with tempfile.NamedTemporaryFile(suffix=".txt", delete=False) as tmp:
+            tmp.write(b"text content")
             tmp_path = tmp.name
 
         try:
@@ -78,13 +77,13 @@ class TestConvertMidiToPnote:
     @pytest.fixture
     def sample_midi_bytes(self):
         """Return sample MIDI bytes from existing test."""
-        b64_midi = "TVRoZAAAAAYAAQABAeBNVHJrAAAAWQD/AwVQaWFubwD/WAQCAhgIAP9ZAgAAAP9RAwehIACweQAAZAAAZQAABgwAZH8AZX8AwAAAsAdkAApAAFsAAF0AAP8hAQAAkDxQg0c8ABk+WoNHPgAB/y8A"
+        b64_midi = "TVRoZAAAAAYAAQABAeBNVHJrAAAAWQD/AwVQaWFubwD/WAQCAhgIAP9ZAgAAAP9RAwehIACweQAAZAAAZQAABgwAZH8AZX8AwAAAsAdkAApAAFsAAF0AAP8hAQAAkDxQg0c8ABk+WoNHPgAB/y8A"  # noqa: E501
         return base64.b64decode(b64_midi)
 
     def test_successful_conversion(self, sample_midi_bytes):
         """Test successful conversion of MIDI bytes to PNote string."""
         # Create a temporary MIDI file
-        with tempfile.NamedTemporaryFile(suffix='.mid', delete=False) as tmp:
+        with tempfile.NamedTemporaryFile(suffix=".mid", delete=False) as tmp:
             tmp.write(sample_midi_bytes)
             tmp_path = tmp.name
 
@@ -113,8 +112,8 @@ class TestConvertMidiToPnote:
 
     def test_invalid_midi_file(self):
         """Test conversion with invalid MIDI file."""
-        with tempfile.NamedTemporaryFile(suffix='.mid', delete=False) as tmp:
-            tmp.write(b'invalid midi content')
+        with tempfile.NamedTemporaryFile(suffix=".mid", delete=False) as tmp:
+            tmp.write(b"invalid midi content")
             tmp_path = tmp.name
 
         try:
@@ -140,14 +139,14 @@ class TestWriteOutput:
         """Test writing to file."""
         test_content = "Test PNote content\nLine 2"
 
-        with tempfile.NamedTemporaryFile(mode='w', delete=False) as tmp:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False) as tmp:
             tmp_path = tmp.name
 
         try:
             write_output(test_content, tmp_path)
 
             # Read back and verify
-            with open(tmp_path, 'r', encoding='utf-8') as f:
+            with open(tmp_path, "r", encoding="utf-8") as f:
                 written_content = f.read()
 
             assert written_content == test_content
@@ -170,7 +169,7 @@ class TestConfigureLogging:
         """Test verbose logging configuration."""
         configure_logging(True)
 
-        logger = logging.getLogger('pnote.cli')
+        logger = logging.getLogger("pnote.cli")
         assert logger.level <= logging.INFO
 
         # Clean up
@@ -180,11 +179,11 @@ class TestConfigureLogging:
         """Test quiet logging configuration."""
         configure_logging(False)
 
-        logger = logging.getLogger('pnote.cli')
+        logger = logging.getLogger("pnote.cli")
         assert logger.level <= logging.WARNING
 
         # Check that mido logger is suppressed
-        mido_logger = logging.getLogger('mido')
+        mido_logger = logging.getLogger("mido")
         assert mido_logger.level == logging.ERROR
 
         # Clean up
@@ -196,23 +195,23 @@ class TestArgumentParsing:
 
     def test_parse_args_with_positional_input(self):
         """Test parsing with positional input argument."""
-        args = parse_args(['test.mid'])
-        assert args.input_path == 'test.mid'
+        args = parse_args(["test.mid"])
+        assert args.input_path == "test.mid"
 
     def test_parse_args_with_flag_input(self):
         """Test parsing with -i/--input flag."""
-        args = parse_args(['-i', 'test.mid'])
-        assert args.input_path == 'test.mid'
+        args = parse_args(["-i", "test.mid"])
+        assert args.input_path == "test.mid"
 
     def test_parse_args_with_both_positional_and_flag(self):
         """Test parsing with both positional and flag (should match)."""
-        args = parse_args(['test.mid', '-i', 'test.mid'])
-        assert args.input_path == 'test.mid'
+        args = parse_args(["test.mid", "-i", "test.mid"])
+        assert args.input_path == "test.mid"
 
     def test_parse_args_conflicting_inputs(self):
         """Test parsing with conflicting positional and flag inputs."""
         with pytest.raises(SystemExit):
-            parse_args(['file1.mid', '-i', 'file2.mid'])
+            parse_args(["file1.mid", "-i", "file2.mid"])
 
     def test_parse_args_missing_input(self):
         """Test parsing without any input."""
@@ -221,14 +220,14 @@ class TestArgumentParsing:
 
     def test_parse_args_with_output(self):
         """Test parsing with output file."""
-        args = parse_args(['-i', 'input.mid', '-o', 'output.pnote'])
-        assert args.input_path == 'input.mid'
-        assert args.output == 'output.pnote'
+        args = parse_args(["-i", "input.mid", "-o", "output.pnote"])
+        assert args.input_path == "input.mid"
+        assert args.output == "output.pnote"
 
     def test_parse_args_with_verbose(self):
         """Test parsing with verbose flag."""
-        args = parse_args(['-i', 'input.mid', '-v'])
-        assert args.input_path == 'input.mid'
+        args = parse_args(["-i", "input.mid", "-v"])
+        assert args.input_path == "input.mid"
         assert args.verbose is True
 
 
@@ -238,19 +237,19 @@ class TestMainFunction:
     @pytest.fixture
     def sample_midi_bytes(self):
         """Return sample MIDI bytes from existing test."""
-        b64_midi = "TVRoZAAAAAYAAQABAeBNVHJrAAAAWQD/AwVQaWFubwD/WAQCAhgIAP9ZAgAAAP9RAwehIACweQAAZAAAZQAABgwAZH8AZX8AwAAAsAdkAApAAFsAAF0AAP8hAQAAkDxQg0c8ABk+WoNHPgAB/y8A"
+        b64_midi = "TVRoZAAAAAYAAQABAeBNVHJrAAAAWQD/AwVQaWFubwD/WAQCAhgIAP9ZAgAAAP9RAwehIACweQAAZAAAZQAABgwAZH8AZX8AwAAAsAdkAApAAFsAAF0AAP8hAQAAkDxQg0c8ABk+WoNHPgAB/y8A"  # noqa: E501
         return base64.b64decode(b64_midi)
 
     def test_main_success_with_stdout(self, sample_midi_bytes, capsys):
         """Test successful main execution with stdout output."""
         # Create temporary MIDI file
-        with tempfile.NamedTemporaryFile(suffix='.mid', delete=False) as tmp:
+        with tempfile.NamedTemporaryFile(suffix=".mid", delete=False) as tmp:
             tmp.write(sample_midi_bytes)
             tmp_path = tmp.name
 
         try:
             # Mock sys.argv for testing
-            with patch('sys.argv', ['pnote', tmp_path]):
+            with patch("sys.argv", ["pnote", tmp_path]):
                 exit_code = main()
 
             assert exit_code == 0
@@ -265,24 +264,24 @@ class TestMainFunction:
     def test_main_success_with_file_output(self, sample_midi_bytes):
         """Test successful main execution with file output."""
         # Create temporary MIDI file
-        with tempfile.NamedTemporaryFile(suffix='.mid', delete=False) as tmp:
+        with tempfile.NamedTemporaryFile(suffix=".mid", delete=False) as tmp:
             tmp.write(sample_midi_bytes)
             tmp_path = tmp.name
 
         # Create temporary output file
-        with tempfile.NamedTemporaryFile(suffix='.pnote', delete=False) as out_tmp:
+        with tempfile.NamedTemporaryFile(suffix=".pnote", delete=False) as out_tmp:
             out_path = out_tmp.name
 
         try:
             # Mock sys.argv for testing
-            with patch('sys.argv', ['pnote', '-i', tmp_path, '-o', out_path]):
+            with patch("sys.argv", ["pnote", "-i", tmp_path, "-o", out_path]):
                 exit_code = main()
 
             assert exit_code == 0
 
             # Check that output file was created and contains expected content
             assert os.path.exists(out_path)
-            with open(out_path, 'r', encoding='utf-8') as f:
+            with open(out_path, "r", encoding="utf-8") as f:
                 content = f.read()
             assert "Tempo:120.0:start=0" in content
             assert "C4:start=0:dur=16:vel=80" in content
@@ -294,7 +293,7 @@ class TestMainFunction:
     def test_main_file_not_found(self, capsys, caplog):
         """Test main with non-existent input file."""
         with caplog.at_level(logging.ERROR):
-            with patch('sys.argv', ['pnote', '/nonexistent/file.mid']):
+            with patch("sys.argv", ["pnote", "/nonexistent/file.mid"]):
                 exit_code = main()
 
         assert exit_code == 1
@@ -304,31 +303,33 @@ class TestMainFunction:
 
     def test_main_invalid_extension(self, capsys, caplog):
         """Test main with invalid file extension."""
-        with tempfile.NamedTemporaryFile(suffix='.txt', delete=False) as tmp:
-            tmp.write(b'not midi')
+        with tempfile.NamedTemporaryFile(suffix=".txt", delete=False) as tmp:
+            tmp.write(b"not midi")
             tmp_path = tmp.name
 
         try:
             with caplog.at_level(logging.ERROR):
-                with patch('sys.argv', ['pnote', tmp_path]):
+                with patch("sys.argv", ["pnote", tmp_path]):
                     exit_code = main()
 
             assert exit_code == 1
 
             # Check that error was logged
-            assert any("Invalid file extension" in record.message for record in caplog.records)
+            assert any(
+                "Invalid file extension" in record.message for record in caplog.records
+            )
         finally:
             os.unlink(tmp_path)
 
     def test_main_verbose_mode(self, sample_midi_bytes, capsys, caplog):
         """Test main with verbose mode enabled."""
-        with tempfile.NamedTemporaryFile(suffix='.mid', delete=False) as tmp:
+        with tempfile.NamedTemporaryFile(suffix=".mid", delete=False) as tmp:
             tmp.write(sample_midi_bytes)
             tmp_path = tmp.name
 
         try:
             with caplog.at_level(logging.INFO):
-                with patch('sys.argv', ['pnote', tmp_path, '-v']):
+                with patch("sys.argv", ["pnote", tmp_path, "-v"]):
                     exit_code = main()
 
             assert exit_code == 0
@@ -352,7 +353,7 @@ class TestBuildArgParser:
 
         # This should exit with code 0
         with pytest.raises(SystemExit) as exc_info:
-            parser.parse_args(['--help'])
+            parser.parse_args(["--help"])
 
         assert exc_info.value.code == 0
 
@@ -367,7 +368,7 @@ class TestBuildArgParser:
         parser = build_arg_parser()
 
         with pytest.raises(SystemExit) as exc_info:
-            parser.parse_args(['--version'])
+            parser.parse_args(["--version"])
 
         assert exc_info.value.code == 0
 
