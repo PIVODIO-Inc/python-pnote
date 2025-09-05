@@ -51,7 +51,6 @@ ENV/
 .ipynb_checkpoints/
 
 # IDEs/editors
-.vscode/
 .idea/
 *.code-workspace
 
