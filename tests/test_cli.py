@@ -360,7 +360,7 @@ class TestBuildArgParser:
         captured = capsys.readouterr()
         assert "Convert MIDI files to PNote format" in captured.out
         assert "positional arguments:" in captured.out
-        assert "optional arguments:" in captured.out  # Changed from "options:"
+        assert "optional arguments:" in captured.out or "options:" in captured.out
         assert "Examples:" in captured.out
 
     def test_version_output(self, capsys):
