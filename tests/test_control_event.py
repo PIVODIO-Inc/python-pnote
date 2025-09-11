@@ -60,7 +60,9 @@ def test_control_event_from_string_empty_start_value():
 def test_control_event_from_string_invalid_start_value():
     with pytest.raises(
         ValueError,
-        match="Invalid start value 'abc': invalid literal for int\(\) with base 10: 'abc'",
+        match=(
+            "Invalid start value 'abc': invalid literal for int\(\) with base 10: 'abc'"
+        ),
     ):
         ControlEvent.from_string("Sustain:on:start=abc")
 

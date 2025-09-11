@@ -79,9 +79,10 @@ class NoteEvent(Event):
 
         # Validate required parameters (efficient set comparison)
         param_keys = set(params.keys())
-        # If param_keys is not the expected set, it means some keys are missing and/or extra.
-        # Given the fixed number of parts, any "missing" implies "extra" (e.g., misspelled key).
-        # We simplify to only report "Unexpected parameters" for clarity.
+        # If param_keys is not the expected set, it means some keys are missing
+        # and/or extra.
+        # Given the fixed number of parts, any "missing" implies "extra" (e.g.,
+        # misspelled key).
         if param_keys != {"start", "dur", "vel"}:
             extra = param_keys - {"start", "dur", "vel"}
             raise ValueError(f"Unexpected parameters: {extra}")
@@ -121,7 +122,8 @@ class ControlEvent(Event):
         parts = s.split(":")
         if len(parts) != 3:
             raise ValueError(
-                f"ControlEvent requires exactly 3 colon-separated parts, got {len(parts)}"
+                "ControlEvent requires exactly 3 colon-separated parts, "
+                f"got {len(parts)}"
             )
         return cls._parse_parts(parts)
 

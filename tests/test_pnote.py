@@ -184,7 +184,7 @@ def test_pnote_from_string_single_control_event():
 
 
 def test_pnote_from_string_multiple_events_sorted():
-    s = "Tempo:120:start=0\n" "C4:start=0:dur=16:vel=80\n" "D4:start=16:dur=16:vel=90"
+    s = "Tempo:120:start=0\nC4:start=0:dur=16:vel=80\nD4:start=16:dur=16:vel=90"
     pnote = PNote.from_string(s)
     assert len(pnote.events) == 3
     assert isinstance(pnote.events[0], ControlEvent)
@@ -195,7 +195,7 @@ def test_pnote_from_string_multiple_events_sorted():
 
 
 def test_pnote_from_string_multiple_events_unsorted():
-    s = "D4:start=16:dur=16:vel=90\n" "C4:start=0:dur=16:vel=80\n" "Tempo:120:start=0"
+    s = "D4:start=16:dur=16:vel=90\nC4:start=0:dur=16:vel=80\nTempo:120:start=0"
     pnote = PNote.from_string(s)
     assert len(pnote.events) == 3
     assert isinstance(pnote.events[0], ControlEvent)
@@ -206,7 +206,7 @@ def test_pnote_from_string_multiple_events_unsorted():
 
 
 def test_pnote_from_string_invalid_line():
-    s = "C4:start=0:dur=16:vel=80\n" "Invalid:line:format\n" "D4:start=16:dur=16:vel=90"
+    s = "C4:start=0:dur=16:vel=80\nInvalid:line:format\nD4:start=16:dur=16:vel=90"
     with pytest.raises(ValueError, match="Error parsing line 2: 'Invalid:line:format'"):
         PNote.from_string(s)
 
@@ -215,13 +215,17 @@ def test_pnote_from_string_invalid_pitch_format_error():
     s = "C:start=0:dur=16:vel=80"  # Invalid pitch
     with pytest.raises(
         ValueError,
-        match="Error parsing line 1: 'C:start=0:dur=16:vel=80' - Could not parse event: C:start=0:dur=16:vel=80. NoteEvent error: Invalid pitch format: C",
+        match=(
+            "Error parsing line 1: 'C:start=0:dur=16:vel=80' - "
+            "Could not parse event: C:start=0:dur=16:vel=80. NoteEvent error: "
+            "Invalid pitch format: C"
+        ),
     ):
         PNote.from_string(s)
 
 
 def test_pnote_from_string_with_empty_lines():
-    s = "Tempo:120:start=0\n" "\n" "   \n" "C4:start=0:dur=16:vel=80"
+    s = "Tempo:120:start=0\n\n   \nC4:start=0:dur=16:vel=80"
     pnote = PNote.from_string(s)
     assert len(pnote.events) == 2
     assert isinstance(pnote.events[0], ControlEvent)

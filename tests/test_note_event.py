@@ -97,6 +97,7 @@ def test_note_event_from_string_invalid_pitch_format():
 
 
 def test_note_event_from_string_incorrect_param_names():
-    # Test case where 'start' is misspelled as 'strt', resulting in 'strt' being an unexpected parameter.
+    # Test case where 'start' is misspelled as 'strt', resulting in 'strt' being
+    # an unexpected parameter.
     with pytest.raises(ValueError, match="Unexpected parameters: {'strt'}"):
         NoteEvent.from_string("C4:strt=100:dur=101:vel=102")
