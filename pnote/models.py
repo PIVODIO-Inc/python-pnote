@@ -5,6 +5,7 @@ import io
 import os
 from typing import BinaryIO
 import mido
+import re
 
 
 # Map MIDI note number to pitch name + octave (C4 = MIDI 60)
@@ -12,14 +13,32 @@ NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
 
 
 class Event:
+    __slots__ = ("start",)
+
     def __init__(self, start: int):
         self.start = start
 
     def to_pnote(self) -> str:
         raise NotImplementedError
 
+    @classmethod
+    def from_string(cls, s: str) -> "Event":
+        """Parse an event from string representation"""
+        try:
+            return NoteEvent.from_string(s)
+        except ValueError as e1:
+            try:
+                return ControlEvent.from_string(s)
+            except ValueError as e2:
+                raise ValueError(
+                    f"Could not parse event: {s}. "
+                    f"NoteEvent error: {e1}, ControlEvent error: {e2}"
+                ) from e2
+
 
 class NoteEvent(Event):
+    __slots__ = ("pitch", "dur", "vel")
+
     def __init__(self, pitch: str, start: int, dur: int, vel: int):
         super().__init__(start)
         self.pitch = pitch
@@ -29,8 +48,67 @@ class NoteEvent(Event):
     def to_pnote(self) -> str:
         return f"{self.pitch}:start={self.start}:dur={self.dur}:vel={self.vel}"
 
+    @classmethod
+    def from_string(cls, s: str) -> "NoteEvent":
+        parts = s.split(":")
+        if len(parts) != 4:
+            raise ValueError(
+                f"NoteEvent requires exactly 4 colon-separated parts, got {len(parts)}"
+            )
+        return cls._parse_parts(parts)
+
+    @classmethod
+    def _parse_parts(cls, parts: List[str]) -> "NoteEvent":
+        pitch = parts[0]
+        if not pitch:
+            raise ValueError("Pitch cannot be empty")
+
+        # Add pitch format validation
+        if not re.match(r"^[A-G][#b]?\d+$", pitch):
+            raise ValueError(f"Invalid pitch format: {pitch}")
+
+        # Optimize parameter parsing
+        params = {}
+        for part in parts[1:]:
+            if "=" not in part:
+                raise ValueError(
+                    f"Invalid parameter format '{part}': expected 'key=value'"
+                )
+            k, v = part.split("=", 1)
+            params[k] = v
+
+        # Validate required parameters (efficient set comparison)
+        param_keys = set(params.keys())
+        # If param_keys is not the expected set, it means some keys are missing
+        # and/or extra.
+        # Given the fixed number of parts, any "missing" implies "extra" (e.g.,
+        # misspelled key).
+        if param_keys != {"start", "dur", "vel"}:
+            extra = param_keys - {"start", "dur", "vel"}
+            raise ValueError(f"Unexpected parameters: {extra}")
+
+        # Convert to integers with validation
+        try:
+            start = int(params["start"])
+            dur = int(params["dur"])
+            vel = int(params["vel"])
+        except ValueError as e:
+            raise ValueError(f"Invalid integer parameter: {e}")
+
+        # Validate ranges
+        if start < 0:
+            raise ValueError(f"start must be non-negative, got {start}")
+        if dur <= 0:
+            raise ValueError(f"dur must be positive, got {dur}")
+        if not (0 <= vel <= 127):
+            raise ValueError(f"vel must be between 0 and 127, got {vel}")
+
+        return NoteEvent(pitch, start, dur, vel)
+
 
 class ControlEvent(Event):
+    __slots__ = ("name", "value")
+
     def __init__(self, name: str, value: str, start: int):
         super().__init__(start)
         self.name = name
@@ -38,6 +116,45 @@ class ControlEvent(Event):
 
     def to_pnote(self) -> str:
         return f"{self.name}:{self.value}:start={self.start}"
+
+    @classmethod
+    def from_string(cls, s: str) -> "ControlEvent":
+        parts = s.split(":")
+        if len(parts) != 3:
+            raise ValueError(
+                "ControlEvent requires exactly 3 colon-separated parts, "
+                f"got {len(parts)}"
+            )
+        return cls._parse_parts(parts)
+
+    @classmethod
+    def _parse_parts(cls, parts: List[str]) -> "ControlEvent":
+        name = parts[0]
+        value = parts[1]
+        start_part = parts[2]
+
+        if not name:
+            raise ValueError("Control name cannot be empty")
+        if not value:
+            raise ValueError("Control value cannot be empty")
+
+        # Parse start parameter efficiently
+        if not start_part.startswith("start="):
+            raise ValueError(f"Third part must be 'start=VALUE', got '{start_part}'")
+
+        start_str = start_part[6:]  # Skip 'start='
+        if not start_str:
+            raise ValueError("Empty start value")
+
+        try:
+            start = int(start_str)
+        except ValueError as e:
+            raise ValueError(f"Invalid start value '{start_str}': {e}")
+
+        if start < 0:
+            raise ValueError(f"start must be non-negative, got {start}")
+
+        return ControlEvent(name, value, start)
 
 
 class PNote:
@@ -67,6 +184,47 @@ class PNote:
 
     def __str__(self) -> str:  # pragma: no cover - convenience
         return self.to_string()
+
+    @classmethod
+    def from_string(cls, pnote_string: str) -> "PNote":
+        """Construct a PNote from a PNote format string.
+
+        Parses a string containing PNote events, one per line:
+        - NoteEvent: Pitch:start=START:dur=DUR:vel=VEL
+        - ControlEvent: ControlName:VALUE:start=START
+
+        Args:
+            pnote_string: The PNote format string to parse
+
+        Returns:
+            A new PNote instance with the parsed events
+
+        Raises:
+            ValueError: If the string contains invalid event formats
+        """
+        pnote = cls()
+
+        # Handle empty input efficiently
+        if not pnote_string or not pnote_string.strip():
+            return pnote
+
+        # Process each line
+        for line_num, line in enumerate(pnote_string.strip().splitlines(), 1):
+            line = line.strip()
+            if not line:  # Skip empty lines
+                continue
+
+            try:
+                # Parse the line into an event
+                # Determine event type by part count and validate
+                event: Event = Event.from_string(line)
+
+                pnote.add_event(event)
+
+            except Exception as e:
+                raise ValueError(f"Error parsing line {line_num}: '{line}' - {str(e)}")
+
+        return pnote
 
     @classmethod
     def from_midi(

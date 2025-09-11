@@ -153,6 +153,87 @@ def test_pnote_from_midi_invalid_type():
         PNote.from_midi(123)  # type: ignore[arg-type]  # not bytes, not file-like, not path-like
 
 
+def test_pnote_from_string_empty():
+    pnote = PNote.from_string("")
+    assert len(pnote.events) == 0
+
+
+def test_pnote_from_string_whitespace_only():
+    pnote = PNote.from_string("  \n\t  ")
+    assert len(pnote.events) == 0
+
+
+def test_pnote_from_string_single_note_event():
+    s = "C4:start=0:dur=16:vel=80"
+    pnote = PNote.from_string(s)
+    assert len(pnote.events) == 1
+    event = pnote.events[0]
+    assert isinstance(event, NoteEvent)
+    assert event.pitch == "C4"
+    assert event.start == 0
+
+
+def test_pnote_from_string_single_control_event():
+    s = "Tempo:120:start=0"
+    pnote = PNote.from_string(s)
+    assert len(pnote.events) == 1
+    event = pnote.events[0]
+    assert isinstance(event, ControlEvent)
+    assert event.name == "Tempo"
+    assert event.value == "120"
+
+
+def test_pnote_from_string_multiple_events_sorted():
+    s = "Tempo:120:start=0\nC4:start=0:dur=16:vel=80\nD4:start=16:dur=16:vel=90"
+    pnote = PNote.from_string(s)
+    assert len(pnote.events) == 3
+    assert isinstance(pnote.events[0], ControlEvent)
+    assert isinstance(pnote.events[1], NoteEvent)
+    assert pnote.events[1].pitch == "C4"
+    assert isinstance(pnote.events[2], NoteEvent)
+    assert pnote.events[2].pitch == "D4"
+
+
+def test_pnote_from_string_multiple_events_unsorted():
+    s = "D4:start=16:dur=16:vel=90\nC4:start=0:dur=16:vel=80\nTempo:120:start=0"
+    pnote = PNote.from_string(s)
+    assert len(pnote.events) == 3
+    assert isinstance(pnote.events[0], ControlEvent)
+    assert isinstance(pnote.events[1], NoteEvent)
+    assert pnote.events[1].pitch == "C4"
+    assert isinstance(pnote.events[2], NoteEvent)
+    assert pnote.events[2].pitch == "D4"
+
+
+def test_pnote_from_string_invalid_line():
+    s = "C4:start=0:dur=16:vel=80\nInvalid:line:format\nD4:start=16:dur=16:vel=90"
+    with pytest.raises(ValueError, match="Error parsing line 2: 'Invalid:line:format'"):
+        PNote.from_string(s)
+
+
+def test_pnote_from_string_invalid_pitch_format_error():
+    s = "C:start=0:dur=16:vel=80"  # Invalid pitch
+    with pytest.raises(
+        ValueError,
+        match=(
+            "Error parsing line 1: 'C:start=0:dur=16:vel=80' - "
+            "Could not parse event: C:start=0:dur=16:vel=80. NoteEvent error: "
+            "Invalid pitch format: C"
+        ),
+    ):
+        PNote.from_string(s)
+
+
+def test_pnote_from_string_with_empty_lines():
+    s = "Tempo:120:start=0\n\n   \nC4:start=0:dur=16:vel=80"
+    pnote = PNote.from_string(s)
+    assert len(pnote.events) == 2
+    assert isinstance(pnote.events[0], ControlEvent)
+    assert pnote.events[0].name == "Tempo"
+    assert isinstance(pnote.events[1], NoteEvent)
+    assert pnote.events[1].pitch == "C4"
+
+
 def test_ticks_to_sixtyfourth_uses_ceiling_for_duration():
     """A note slightly shorter than an exact 1/64 should round up to that 1/64.
 
